@@ -1,7 +1,4 @@
-module Control.Monad.Ef
-  ( Ef
-  , toEff
-  ) where
+module Control.Monad.Ef (Ef) where
 
 import Control.Applicative (class Applicative)
 -- import Control.Applicative (class Applicative, liftA1)
@@ -12,6 +9,7 @@ import Control.Monad (class Monad)
 import Control.Monad.Eff (Eff, kind Effect)
 import Data.Functor (class Functor)
 import Control.Monad.Eff.Class (class MonadEff)
+import Unsafe.Coerce (unsafeCoerce)
 
 
 foreign import data Ef :: # Effect -> Type -> Type
@@ -33,11 +31,8 @@ instance bindEf :: Bind (Ef e) where
 instance monadEf :: Monad (Ef e)
 
 instance monadEEFff :: MonadEff eff (Ef eff) where
-  liftEff = liftEffE
+  liftEff = unsafeCoerce
 
-foreign import toEff :: forall e a. Ef e a -> Eff e a
-
-foreign import liftEffE :: forall e a. Eff e a -> Ef e a
 foreign import mapE :: forall e a b. (a -> b) -> Ef e a -> Ef e b
 foreign import applyE :: forall e a b. Ef e (a -> b) -> Ef e a-> Ef e b
 foreign import pureE :: forall e a. a -> Ef e a

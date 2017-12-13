@@ -7,9 +7,6 @@ import Control.Apply (lift2)
 import Control.Monad.Eff.Class (class MonadEff, liftEff)
 import Control.Monad.Ef (Ef)
 import Control.Monad.Ef.Class (liftEf)
-import Data.Traversable (for_)
-import Performance.Minibench (benchWith)
-import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import Control.Monad.Eff.Console (CONSOLE)
 
 

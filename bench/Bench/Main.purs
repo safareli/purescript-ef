@@ -77,14 +77,8 @@ extended = do
   log header
   bench2 ">>=R" testBindRight testBindRight [20000, 50000, 100000, 1000000]
   bench2 ">>=L" testBindLeft testBindLeft [20000, 50000, 100000, 1000000]
-  bench2 "map" testMap testMap [10000, 20000, 50000, 100000, 1000000]
-  timed ["map", "Ef", "10000000"] $ testMap 10000000 -- Aff can't handle this number, I got `JavaScript heap out of memory`
+  bench2 "map" testMap testMap [10000, 20000, 50000, 100000, 1000000, 350000, 700000]
   bench2 "apply" testApply testApply [10000, 20000, 50000, 100000, 1000000]
-
-timed :: Array String -> Ef BenchEff Unit -> Eff BenchEff Unit
-timed msg ef = do
-  let eff = liftEf ef
-  logBench' msg $ benchWith' 5 \_ -> unsafePerformEff eff
 
 header :: String
 header = 
