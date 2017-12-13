@@ -73,20 +73,25 @@ main = do
 extended :: Eff BenchEff Unit
 extended = do
   log header
+  timed ["bind assocR", "Ef", "20000"] $ testBindRight 20000
+  timed ["bind assocR", "Ef", "50000"] $ testBindRight 50000
   timed ["bind assocR", "Ef", "100000"] $ testBindRight 100000 
-  timed ["bind assocR", "Ef", "1000000"] $ testBindRight 1000000 -- ~ 1 sec
---timed ["bind assocR", "Ef", "10000000"] $ testBindRight 10000000 -- ~ 10 sec
---timed ["bind assocR", "Ef", "100000000"] $ testBindRight 100000000  -- JavaScript heap out of memory  
+  timed ["bind assocR", "Ef", "1000000"] $ testBindRight 1000000
   timed ["bind assocL", "Ef", "20000"] $ testBindLeft 20000
-  timed ["bind assocL", "Ef", "40000"] $ testBindLeft 40000
-  timed ["bind assocL", "Ef", "80000"] $ testBindLeft 80000
+  timed ["bind assocL", "Ef", "50000"] $ testBindLeft 50000
+  timed ["bind assocL", "Ef", "100000"] $ testBindLeft 100000
+  timed ["bind assocL", "Ef", "1000000"] $ testBindLeft 1000000
   timed ["map", "Ef", "10000"] $ testMap 10000
   timed ["map", "Ef", "20000"] $ testMap 20000
-  timed ["map", "Ef", "40000"] $ testMap 40000
-  timed ["map", "Ef", "80000"] $ testMap 80000
+  timed ["map", "Ef", "50000"] $ testMap 50000
+  timed ["map", "Ef", "100000"] $ testMap 100000
+  timed ["map", "Ef", "1000000"] $ testMap 1000000
+  timed ["map", "Ef", "10000000"] $ testMap 10000000
   timed ["apply", "Ef", "10000"] $ testApply 10000
   timed ["apply", "Ef", "20000"] $ testApply 20000
-  timed ["apply", "Ef", "40000"] $ testApply 40000
+  timed ["apply", "Ef", "50000"] $ testApply 50000
+  timed ["apply", "Ef", "100000"] $ testApply 100000
+  timed ["apply", "Ef", "1000000"] $ testApply 1000000
 
 header :: String
 header = 
@@ -100,12 +105,12 @@ bench
   -> Array Int
   -> Eff BenchEff Unit
 bench name buildEff buildEf vals = for_ vals \val -> do 
-  logBench [name <> " build", "Eff", show val] $ benchWith' 2000 \_ -> buildEff val
-  logBench' [name <> " build", "Ef", show val] $ benchWith' 2000 \_ -> buildEf val
+  logBench [name <> " build", "Eff", show val] $ benchWith' 1000 \_ -> buildEff val
+  logBench' [name <> " build", "Ef", show val] $ benchWith' 1000 \_ -> buildEf val
   let eff = liftEff $ buildEff val
-  logBench [name <> " run", "Eff", show val] $ benchWith' 2000 \_ -> unsafePerformEff eff
+  logBench [name <> " run", "Eff", show val] $ benchWith' 1000 \_ -> unsafePerformEff eff
   let ef = liftEf $ buildEf val
-  logBench' [name <> " run", "Ef", show val] $ benchWith' 2000 \_ -> unsafePerformEff ef
+  logBench' [name <> " run", "Ef", show val] $ benchWith' 1000 \_ -> unsafePerformEff ef
 
 
 timed :: Array String -> Ef BenchEff Unit -> Eff BenchEff Unit
