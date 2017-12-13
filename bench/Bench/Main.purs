@@ -117,9 +117,8 @@ logBench'' f msg benchEff = do
   res <- benchEff
   let 
     logStr = intercalate " | " 
-      $ map f
       $ append msg 
-      $ map withUnits [res.mean, res.stdDev, res.min, res.max]
+      $ map (f <<< withUnits) [res.mean, res.stdDev, res.min, res.max]
   log $  "| "  <> logStr <>  " |"
 
 logBench :: Array String -> Eff BenchEff BenchResult -> Eff BenchEff Unit
