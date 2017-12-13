@@ -1,14 +1,14 @@
 "use strict";
 
 exports.mkArr = function(){
-  return [];
+  return { count: 0 };
 };
 
 exports.pushToArr = function(xs) {
   return function(x) {
     return function() {
-      xs.push(x);
-      return x;
+      xs.count += 1
+      return xs;
     };
   };
 };
