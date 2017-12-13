@@ -53,7 +53,8 @@ testBindLeft n' = do
 
 testMap :: forall m. MonadEff BenchEff m => Int -> m Unit
 testMap n = do
-  res <- mapLoop n (pure 0)
+  arr <- liftEff mkArr
+  res <- mapLoop n (liftEff $ pushToArr arr 0)
   pure unit
   where
   mapLoop :: Monad m => Int -> m Int -> m Int
@@ -76,8 +77,14 @@ extended = do
   log header
   bench2 ">>=R" testBindRight testBindRight [20000, 50000, 100000, 1000000]
   bench2 ">>=L" testBindLeft testBindLeft [20000, 50000, 100000, 1000000]
-  bench2 "map" testMap testMap [10000, 20000, 50000, 100000, 1000000, 10000000]
+  bench2 "map" testMap testMap [10000, 20000, 50000, 100000, 1000000]
+  timed ["map", "Ef", "10000000"] $ testMap 10000000 -- Aff can't handle this number, I got `JavaScript heap out of memory`
   bench2 "apply" testApply testApply [10000, 20000, 50000, 100000, 1000000]
+
+timed :: Array String -> Ef BenchEff Unit -> Eff BenchEff Unit
+timed msg ef = do
+  let eff = liftEf ef
+  logBench' msg $ benchWith' 5 \_ -> unsafePerformEff eff
 
 header :: String
 header = 
@@ -97,8 +104,8 @@ bench3 name buildEff buildEf buildAff vals = for_ vals \val -> do
   logBench' [name <> " build", "Ef", show val] $ benchWith' 1000 \_ -> buildEf val
   let eff = liftEff $ buildEff val
   logBench [name <> " run", "Eff", show val] $ benchWith' 1000 \_ -> unsafePerformEff eff
-  let aff = buildAff val
-  logBench [name <> " run", "Aff", show val] $ benchWith' 1000 \_ -> unsafePerformEff $ launchAff_ aff
+  let aff = launchAff_ $ buildAff val
+  logBench [name <> " run", "Aff", show val] $ benchWith' 1000 \_ -> unsafePerformEff aff
   let ef = liftEf $ buildEf val
   logBench' [name <> " run", "Ef", show val] $ benchWith' 1000 \_ -> unsafePerformEff ef
 
@@ -111,8 +118,8 @@ bench2
 bench2 name buildEf buildAff vals = for_ vals \val -> do 
   logBench [name <> " build", "Aff", show val] $ benchWith' 4 \_ -> buildAff val
   logBench' [name <> " build", "Ef", show val] $ benchWith' 4 \_ -> buildEf val
-  let aff = buildAff val
-  logBench [name <> " run", "Aff", show val] $ benchWith' 4 \_ -> unsafePerformEff $ launchAff_ aff
+  let aff = launchAff_ $ buildAff val
+  logBench [name <> " run", "Aff", show val] $ benchWith' 4 \_ -> unsafePerformEff aff
   let ef = liftEf $ buildEf val
   logBench' [name <> " run", "Ef", show val] $ benchWith' 4 \_ -> unsafePerformEff ef
 
