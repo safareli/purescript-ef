@@ -5,6 +5,7 @@ import Prelude
 import Control.Monad.Ef (Ef)
 import Control.Monad.Ef.Class (liftEf)
 import Control.Monad.Eff (Eff)
+import Control.Monad.Aff (Aff, launchAff_)
 import Control.Monad.Eff.Class (class MonadEff, liftEff)
 import Control.Monad.Eff.Console (CONSOLE)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
@@ -65,57 +66,55 @@ testMap n = do
 main :: Eff BenchEff Unit
 main = do
   log header
-  bench "bind assocR" testBindRight testBindRight [100, 500, 1000, 2000, 4000, 8000, 10000]
-  bench "bind assocL" testMap testMap [100, 500, 1000, 2000, 4000, 8000]
-  bench "map" testMap testMap [100, 500, 1000, 2000, 4000, 5000]
-  bench "apply" testApply testApply [100, 500, 1000, 2000, 4000, 5000]
+  bench3 ">>=R" testBindRight testBindRight testBindRight [100, 500, 1000, 2000, 4000, 8000, 10000]
+  bench3 ">>=L" testBindLeft testBindLeft testBindLeft [100, 500, 1000, 2000, 4000, 8000]
+  bench3 "map" testMap testMap testMap [100, 500, 1000, 2000, 4000, 5000]
+  bench3 "apply" testApply testApply testApply [100, 500, 1000, 2000, 4000, 5000]
 
 extended :: Eff BenchEff Unit
 extended = do
   log header
-  timed ["bind assocR", "Ef", "20000"] $ testBindRight 20000
-  timed ["bind assocR", "Ef", "50000"] $ testBindRight 50000
-  timed ["bind assocR", "Ef", "100000"] $ testBindRight 100000 
-  timed ["bind assocR", "Ef", "1000000"] $ testBindRight 1000000
-  timed ["bind assocL", "Ef", "20000"] $ testBindLeft 20000
-  timed ["bind assocL", "Ef", "50000"] $ testBindLeft 50000
-  timed ["bind assocL", "Ef", "100000"] $ testBindLeft 100000
-  timed ["bind assocL", "Ef", "1000000"] $ testBindLeft 1000000
-  timed ["map", "Ef", "10000"] $ testMap 10000
-  timed ["map", "Ef", "20000"] $ testMap 20000
-  timed ["map", "Ef", "50000"] $ testMap 50000
-  timed ["map", "Ef", "100000"] $ testMap 100000
-  timed ["map", "Ef", "1000000"] $ testMap 1000000
-  timed ["map", "Ef", "10000000"] $ testMap 10000000
-  timed ["apply", "Ef", "10000"] $ testApply 10000
-  timed ["apply", "Ef", "20000"] $ testApply 20000
-  timed ["apply", "Ef", "50000"] $ testApply 50000
-  timed ["apply", "Ef", "100000"] $ testApply 100000
-  timed ["apply", "Ef", "1000000"] $ testApply 1000000
+  bench2 ">>=R" testBindRight testBindRight [20000, 50000, 100000, 1000000]
+  bench2 ">>=L" testBindLeft testBindLeft [20000, 50000, 100000, 1000000]
+  bench2 "map" testMap testMap [10000, 20000, 50000, 100000, 1000000, 10000000]
+  bench2 "apply" testApply testApply [10000, 20000, 50000, 100000, 1000000]
 
 header :: String
 header = 
   "| bench | type | n | mean | stddev | min | max |\n" <>
   "| ----- | ---- | - | ---- | ------ | --- | --- |"
 
-bench
+bench3
   :: String
   -> (Int -> Eff BenchEff Unit)
   -> (Int -> Ef BenchEff Unit)
+  -> (Int -> Aff BenchEff Unit)
   -> Array Int
   -> Eff BenchEff Unit
-bench name buildEff buildEf vals = for_ vals \val -> do 
+bench3 name buildEff buildEf buildAff vals = for_ vals \val -> do 
   logBench [name <> " build", "Eff", show val] $ benchWith' 1000 \_ -> buildEff val
+  logBench [name <> " build", "Aff", show val] $ benchWith' 1000 \_ -> buildAff val
   logBench' [name <> " build", "Ef", show val] $ benchWith' 1000 \_ -> buildEf val
   let eff = liftEff $ buildEff val
   logBench [name <> " run", "Eff", show val] $ benchWith' 1000 \_ -> unsafePerformEff eff
+  let aff = buildAff val
+  logBench [name <> " run", "Aff", show val] $ benchWith' 1000 \_ -> unsafePerformEff $ launchAff_ aff
   let ef = liftEf $ buildEf val
   logBench' [name <> " run", "Ef", show val] $ benchWith' 1000 \_ -> unsafePerformEff ef
 
-
-timed :: Array String -> Ef BenchEff Unit -> Eff BenchEff Unit
-timed msg eff = 
-  logBench' msg $ benchWith' 5 \_ -> unsafePerformEff $ liftEf eff
+bench2
+  :: String
+  -> (Int -> Ef BenchEff Unit)
+  -> (Int -> Aff BenchEff Unit)
+  -> Array Int
+  -> Eff BenchEff Unit
+bench2 name buildEf buildAff vals = for_ vals \val -> do 
+  logBench [name <> " build", "Aff", show val] $ benchWith' 4 \_ -> buildAff val
+  logBench' [name <> " build", "Ef", show val] $ benchWith' 4 \_ -> buildEf val
+  let aff = buildAff val
+  logBench [name <> " run", "Aff", show val] $ benchWith' 4 \_ -> unsafePerformEff $ launchAff_ aff
+  let ef = liftEf $ buildEf val
+  logBench' [name <> " run", "Ef", show val] $ benchWith' 4 \_ -> unsafePerformEff ef
 
 logBench'' :: (String -> String) -> Array String -> Eff BenchEff BenchResult -> Eff BenchEff Unit
 logBench'' f msg benchEff = do
