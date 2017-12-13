@@ -62,7 +62,7 @@ exports.toEff = function (inputEff) {
     var op;
     effLoop: for (;;) {
       if (eff.tag === MAP || eff.tag === BIND || eff.tag === APPLY) {
-        operations.unshift(eff);
+        operations.push(eff);
         eff = eff._1;
       } else {
         if (eff.tag === EFFECT) {
@@ -70,14 +70,14 @@ exports.toEff = function (inputEff) {
         } else { // eff.tag === PURE
           res = eff._0;
         }
-        while ((op = operations.shift())) {
+        while ((op = operations.pop())) {
           if (op.tag === MAP) {
             res = op._0(res);
           } else if (op.tag === APPLY_FUNC) {
             res = op._0(res);
           } else if (op.tag === APPLY) {
             eff = op._0;
-            operations.unshift(new Ef(APPLY_FUNC, res));
+            operations.push(new Ef(APPLY_FUNC, res));
             continue effLoop;
           } else { // op.tag === BIND
             eff = op._0(res);
