@@ -54,6 +54,9 @@ exports.bindE = function (eff) {
 };
 
 exports.toEff = function (inputEff) {
+  if (typeof inputEff === "function") {
+    return inputEff;
+  }
   return function() {
     var operations = [];
     var eff = inputEff;
